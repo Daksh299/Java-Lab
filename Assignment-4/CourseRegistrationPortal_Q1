@@ -1,0 +1,175 @@
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+class Course {
+    private final String code;
+    private final String title;
+    private final int capacity;
+    private final Set<String> enrolledStudents = new HashSet<>();
+    private final List<String> prerequisites = new ArrayList<>();
+    private final LinkedList<String> waitlist = new LinkedList<>();
+
+    Course(String code, String title, int capacity, List<String> prerequisites) {
+        this.code = code;
+        this.title = title;
+        this.capacity = capacity;
+        if (prerequisites != null) {
+            this.prerequisites.addAll(prerequisites);
+        }
+    }
+
+    String getCode() {
+        return code;
+    }
+
+    String getTitle() {
+        return title;
+    }
+
+    int getCapacity() {
+        return capacity;
+    }
+
+    Set<String> getEnrolledStudents() {
+        return enrolledStudents;
+    }
+
+    List<String> getPrerequisites() {
+        return prerequisites;
+    }
+
+    LinkedList<String> getWaitlist() {
+        return waitlist;
+    }
+
+    boolean isFull() {
+        return enrolledStudents.size() >= capacity;
+    }
+
+    @Override
+    public String toString() {
+        return code + " - " + title + " | Enrolled: " + enrolledStudents.size() + "/" + capacity
+                + " | Prerequisites: " + prerequisites + " | Waitlist: " + waitlist;
+    }
+}
+
+enum RegistrationResult {
+    ENROLLED,
+    WAITLISTED,
+    ALREADY_ENROLLED,
+    ALREADY_WAITLISTED,
+    PREREQUISITES_NOT_MET,
+    COURSE_NOT_FOUND
+}
+
+class RegistrationPortal {
+    private final Map<String, Course> courses = new HashMap<>();
+    private final Map<String, Set<String>> completedCourses = new HashMap<>();
+
+    void addCourse(Course course) {
+        courses.put(course.getCode(), course);
+    }
+
+    Course findCourse(String code) {
+        return courses.get(code);
+    }
+
+    void markCompleted(String studentId, String courseCode) {
+        completedCourses.computeIfAbsent(studentId, k -> new HashSet<>()).add(courseCode);
+    }
+
+    private boolean meetsPrerequisites(String studentId, Course course) {
+        Set<String> done = completedCourses.getOrDefault(studentId, new HashSet<>());
+        for (String prerequisite : course.getPrerequisites()) {
+            if (!done.contains(prerequisite)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    RegistrationResult register(String studentId, String courseCode) {
+        Course course = courses.get(courseCode);
+        if (course == null) {
+            return RegistrationResult.COURSE_NOT_FOUND;
+        }
+        if (course.getEnrolledStudents().contains(studentId)) {
+            return RegistrationResult.ALREADY_ENROLLED;
+        }
+        if (course.getWaitlist().contains(studentId)) {
+            return RegistrationResult.ALREADY_WAITLISTED;
+        }
+        if (!meetsPrerequisites(studentId, course)) {
+            return RegistrationResult.PREREQUISITES_NOT_MET;
+        }
+        if (!course.isFull()) {
+            course.getEnrolledStudents().add(studentId);
+            return RegistrationResult.ENROLLED;
+        }
+        course.getWaitlist().addLast(studentId);
+        return RegistrationResult.WAITLISTED;
+    }
+
+    String drop(String studentId, String courseCode) {
+        Course course = courses.get(courseCode);
+        if (course == null) {
+            return null;
+        }
+        if (course.getWaitlist().remove(studentId)) {
+            return null;
+        }
+        if (!course.getEnrolledStudents().remove(studentId)) {
+            return null;
+        }
+        return promoteFromWaitlist(course);
+    }
+
+    private String promoteFromWaitlist(Course course) {
+        String promoted = null;
+        while (!course.isFull() && !course.getWaitlist().isEmpty()) {
+            promoted = course.getWaitlist().pollFirst();
+            course.getEnrolledStudents().add(promoted);
+        }
+        return promoted;
+    }
+
+    void printCourse(String courseCode) {
+        Course course = courses.get(courseCode);
+        System.out.println(course == null ? "Course not found: " + courseCode : course);
+    }
+}
+
+public class CourseRegistrationPortal {
+    public static void main(String[] args) {
+        RegistrationPortal portal = new RegistrationPortal();
+
+        portal.addCourse(new Course("CS101", "Intro to Programming", 2, new ArrayList<>()));
+        portal.addCourse(new Course("CS201", "Data Structures", 2, List.of("CS101")));
+
+        portal.markCompleted("S1", "CS101");
+        portal.markCompleted("S2", "CS101");
+        portal.markCompleted("S3", "CS101");
+        portal.markCompleted("S4", "CS101");
+
+        System.out.println("S1 -> CS201: " + portal.register("S1", "CS201"));
+        System.out.println("S2 -> CS201: " + portal.register("S2", "CS201"));
+        System.out.println("S3 -> CS201: " + portal.register("S3", "CS201"));
+        System.out.println("S4 -> CS201: " + portal.register("S4", "CS201"));
+        System.out.println("S1 -> CS201 again: " + portal.register("S1", "CS201"));
+        System.out.println("S3 -> CS201 again: " + portal.register("S3", "CS201"));
+        System.out.println("S9 -> CS201 (no prerequisite): " + portal.register("S9", "CS201"));
+        System.out.println("S1 -> CS999: " + portal.register("S1", "CS999"));
+
+        portal.printCourse("CS201");
+
+        String promoted = portal.drop("S1", "CS201");
+        System.out.println("S1 dropped CS201, promoted from waitlist: " + promoted);
+
+        portal.printCourse("CS201");
+    }
+}
