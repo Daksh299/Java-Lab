@@ -1,0 +1,47 @@
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
+
+public class StudentFileHandling {
+
+    public static void main(String[] args) {
+        copyBinaryFile("student_image.jpg", "student_image_copy.jpg");
+        writeStudentDetails("student_details.txt", "ID: 101, Name: John Doe, Department: CS\nID: 102, Name: Jane Smith, Department: IT");
+        readStudentDetails("student_details.txt");
+    }
+
+    public static void copyBinaryFile(String source, String destination) {
+        try (FileInputStream fis = new FileInputStream(source);
+             FileOutputStream fos = new FileOutputStream(destination)) {
+            byte[] buffer = new byte[1024];
+            int bytesRead;
+            while ((bytesRead = fis.read(buffer)) != -1) {
+                fos.write(buffer, 0, bytesRead);
+            }
+        } catch (IOException e) {
+            System.err.println("Error copying binary file: " + e.getMessage());
+        }
+    }
+
+    public static void writeStudentDetails(String filePath, String data) {
+        try (FileWriter writer = new FileWriter(filePath)) {
+            writer.write(data);
+        } catch (IOException e) {
+            System.err.println("Error writing student details: " + e.getMessage());
+        }
+    }
+
+    public static void readStudentDetails(String filePath) {
+        try (FileReader reader = new FileReader(filePath)) {
+            int character;
+            while ((character = reader.read()) != -1) {
+                System.out.print((char) character);
+            }
+            System.out.println();
+        } catch (IOException e) {
+            System.err.println("Error reading student details: " + e.getMessage());
+        }
+    }
+}
