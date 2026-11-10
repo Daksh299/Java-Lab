@@ -1,0 +1,45 @@
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
+
+public class LogAnalyzer {
+
+    public static void main(String[] args) {
+        String inputLog = "application.log";
+        String outputLog = "filtered_logs.txt";
+        analyzeLog(inputLog, outputLog);
+    }
+
+    public static void analyzeLog(String inputFile, String outputFile) {
+        int totalEntries = 0;
+        int errorCount = 0;
+        int warningCount = 0;
+
+        try (BufferedReader reader = new BufferedReader(new FileReader(inputFile));
+             BufferedWriter writer = new BufferedWriter(new FileWriter(outputFile))) {
+
+            String line;
+            while ((line = reader.readLine()) != null) {
+                totalEntries++;
+                boolean isError = line.contains("ERROR");
+                boolean isWarning = line.contains("WARNING");
+
+                if (isError || isWarning) {
+                    if (isError) errorCount++;
+                    if (isWarning) warningCount++;
+                    writer.write(line);
+                    writer.newLine();
+                }
+            }
+
+            System.out.println("Total Log Entries Processed: " + totalEntries);
+            System.out.println("ERROR entries found: " + errorCount);
+            System.out.println("WARNING entries found: " + warningCount);
+
+        } catch (IOException e) {
+            System.err.println("Error processing log file: " + e.getMessage());
+        }
+    }
+}
